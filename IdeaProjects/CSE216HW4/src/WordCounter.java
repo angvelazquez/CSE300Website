@@ -65,12 +65,62 @@ public class WordCounter {
         }
     }
 
+    static class MultiReadThread extends Thread implements Runnable {
+        private List<File> readAllFiles;
+        private TreeMap<String, TreeMap<String, Integer>> outPutMap;
+
+        public MultiReadThread(List<File> readAllFiles, TreeMap<String, TreeMap<String, Integer>> outPutMap)
+        {
+            this.readAllFiles = readAllFiles;
+            this.outPutMap = outPutMap;
+        }
+
+        public TreeMap<String, TreeMap<String, Integer>> getOutPutMap() {
+            return outPutMap;
+        }
+
+        public void run() {
+            for(File file : readAllFiles)
+            {
+                try
+                {
+                    TreeMap<String, Integer> map = new TreeMap<>();
+                    Scanner readText = new Scanner(file);
+                    while(readText.hasNextLine())
+                    {
+                        String currentLine = readText.nextLine();
+                        String[] split = currentLine.replaceAll("[^a-zA-Z ]", "").toLowerCase().split("\\s+");
+                        for(int i = 0; i < split.length; i++)
+                        {
+                            if(map.get(split[i]) == null)
+                            {
+                                map.put(split[i], 1);
+                            }
+                            else
+                            {
+                                map.put(split[i], map.get(split[i])+1);
+                            }
+                        }
+                    }
+                    outPutMap.put(file.getName(), map);
+                    readText.close();
+
+                }
+                catch (IOException e)
+                {
+                    e.printStackTrace();
+                }
+            }
+        }
+    }
+
 
     public static void main(String... args)
     {
         // your implementation of how to run the WordCounter as a stand-alone multi-threaded program
         long start = System.currentTimeMillis();
         ArrayList<ReadThread> runningThreads = new ArrayList<>();
+        ArrayList<MultiReadThread> runningMultiThreads = new ArrayList<>();
         File directory = new File(String.valueOf(FOLDER_OF_TEXT_FILES));
         File[] files = directory.listFiles(); // Array of all files within the directory
         assert files != null; // idk what this does yet lol
@@ -80,30 +130,93 @@ public class WordCounter {
             {
                 TreeMap<String, Integer> map = new TreeMap<>();
                 ReadThread t = new ReadThread(files[i], map);
+                System.out.println("Thread spawned.");
                 runningThreads.add(t);
                 t.start();
             }
         }
         else
         {
+            int numFilesPerThread = numThreads(files.length, NUMBER_OF_THREADS);
+            int fileCount = 1;
+            List<File> filesToThread = new ArrayList<>();
+            for(int i = 0; i < files.length; i++)
+            {
+                filesToThread.add(files[i]);
+                if(fileCount == numFilesPerThread)
+                {
+                    TreeMap<String, TreeMap<String, Integer>> map2 = new TreeMap<>();
+                    MultiReadThread t = new MultiReadThread(filesToThread, map2);
+                    System.out.println("Thread spawned.");
+                    runningMultiThreads.add(t);
+                    t.start();
+                    try {
+                        t.join();
+                    } catch (InterruptedException e) {
+                        e.printStackTrace();
+                    }
+                    fileCount = 0;
+                    filesToThread.clear();
+                }
+                fileCount++;
+            }
 
+            if(filesToThread.size() > 0)
+            {
+                TreeMap<String, TreeMap<String, Integer>> map2 = new TreeMap<>();
+                MultiReadThread t = new MultiReadThread(filesToThread, map2);
+                System.out.println("Thread spawned.");
+                runningMultiThreads.add(t);
+                t.start();
+                try {
+                    t.join();
+                } catch (InterruptedException e) {
+                    e.printStackTrace();
+                }
+                filesToThread.clear();
+            }
         }
 
         ArrayList<String> mergedKeyset = new ArrayList<>();
-        TreeMap<String, TreeMap<String, Integer>> fileMaps = new TreeMap<>();
-        for(int i = 0; i < runningThreads.size(); i++)
+        TreeMap<String, TreeMap<String, Integer>> fileMaps;
+        if(NUMBER_OF_THREADS >= files.length)
         {
-            try
+            fileMaps = new TreeMap<>(); // HEY LOOK HERE ONLY WORKS FOR THREADS >= FILES
+            for(int i = 0; i < runningThreads.size(); i++)
             {
-                runningThreads.get(i).join();
-                fileMaps.put(runningThreads.get(i).fileName(), runningThreads.get(i).getMap());
-                mergedKeyset.addAll(runningThreads.get(i).getMap().keySet());
-            }
-            catch (InterruptedException e)
-            {
-                e.printStackTrace();
+                try
+                {
+                    runningThreads.get(i).join();
+                    fileMaps.put(runningThreads.get(i).fileName(), runningThreads.get(i).getMap());
+                    mergedKeyset.addAll(runningThreads.get(i).getMap().keySet());
+                }
+                catch (InterruptedException e)
+                {
+                    e.printStackTrace();
+                }
             }
         }
+        else
+        {
+            fileMaps = new TreeMap<>();
+            for(int i = 0; i < runningMultiThreads.size(); i++)
+            {
+                try
+                {
+                    runningMultiThreads.get(i).join();
+                    for(String textNames : runningMultiThreads.get(i).getOutPutMap().keySet())
+                    {
+                        fileMaps.put(textNames, runningMultiThreads.get(i).getOutPutMap().get(textNames));
+                        mergedKeyset.addAll(runningMultiThreads.get(i).getOutPutMap().get(textNames).keySet());
+                    }
+                }
+                catch (InterruptedException e)
+                {
+                    e.printStackTrace();
+                }
+            }
+        }
+
 
         Set<String> noRepeats = new HashSet<>(mergedKeyset);
         mergedKeyset.clear();
@@ -169,5 +282,27 @@ public class WordCounter {
         return strings
                 .stream()
                 .reduce((s1, s2) -> (s1.length() > s2.length()) ? s1 : ((s1.length() < s2.length()) ? s2 : (from_start ? s1 : s2))).orElse("");
+    }
+
+    public static int numThreads(int files, int threads)
+    {
+        int returnValue = 0;
+
+        if(files / threads >= threads)
+        {
+            returnValue = files / threads;;
+        }
+        else if(files % threads != 0)
+        {
+            if (((threads - 1) * 2 ) + 1 == files)
+                return 2;
+            else
+                return 1;
+        }
+        else if(threads == 1)
+        {
+            returnValue = files;
+        }
+        return returnValue;
     }
 }
