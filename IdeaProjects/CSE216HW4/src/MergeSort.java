@@ -39,7 +39,7 @@ public class MergeSort {
     public static void concurrentMergeSort(int[] array)
     {
         //int threadCount = Runtime.getRuntime().availableProcessors();
-        concurrentMergeSort(array, 7);
+        concurrentMergeSort(array, 9);
     }
 
     public static void concurrentMergeSort(int[] array, int threadCount)

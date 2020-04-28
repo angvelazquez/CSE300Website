@@ -10,9 +10,9 @@ public class WordCounter {
 
     // The following are the ONLY variables we will modify for grading.
     // The rest of your code must run with no changes.
-    public static final Path FOLDER_OF_TEXT_FILES  = Paths.get("filesPlace"); // path to the folder where input text files are located
+    public static final Path FOLDER_OF_TEXT_FILES  = Paths.get("papi"); // path to the folder where input text files are located
     public static final Path WORD_COUNT_TABLE_FILE = Paths.get("table"); // path to the output plain-text (.txt) file
-    public static final int  NUMBER_OF_THREADS     = 3;                // max. number of threads to spawn
+    public static final int  NUMBER_OF_THREADS     = 4;                // max. number of threads to spawn
 
     // NEED TO IMPLEMENT
     static class ReadThread extends Thread implements Runnable {
@@ -42,6 +42,8 @@ public class WordCounter {
                 while(readText.hasNextLine())
                 {
                     String currentLine = readText.nextLine();
+                    if(currentLine.length() == 0)
+                        continue;
                     String[] split = currentLine.replaceAll("[^a-zA-Z ]", "").toLowerCase().split("\\s+");
                     for(int i = 0; i < split.length; i++)
                     {
@@ -89,6 +91,8 @@ public class WordCounter {
                     while(readText.hasNextLine())
                     {
                         String currentLine = readText.nextLine();
+                        if(currentLine.length() == 0)
+                            continue;
                         String[] split = currentLine.replaceAll("[^a-zA-Z ]", "").toLowerCase().split("\\s+");
                         for(int i = 0; i < split.length; i++)
                         {
@@ -118,19 +122,22 @@ public class WordCounter {
     public static void main(String... args)
     {
         // your implementation of how to run the WordCounter as a stand-alone multi-threaded program
+        if(NUMBER_OF_THREADS <= 0)
+            throw new IllegalArgumentException("Cannot run program with " + NUMBER_OF_THREADS + " threads.");
         long start = System.currentTimeMillis();
         ArrayList<ReadThread> runningThreads = new ArrayList<>();
         ArrayList<MultiReadThread> runningMultiThreads = new ArrayList<>();
         File directory = new File(String.valueOf(FOLDER_OF_TEXT_FILES));
         File[] files = directory.listFiles(); // Array of all files within the directory
-        assert files != null; // idk what this does yet lol
+        if(files.length <= 0)
+            throw new IllegalArgumentException("Cannot run program with " + files.length + " files.");
         if(NUMBER_OF_THREADS >= files.length)
         {
             for(int i = 0; i < files.length; i++)
             {
                 TreeMap<String, Integer> map = new TreeMap<>();
                 ReadThread t = new ReadThread(files[i], map);
-                System.out.println("Thread spawned.");
+                System.out.println("Thread " + t.getId() + " spawned.");
                 runningThreads.add(t);
                 t.start();
             }
@@ -140,41 +147,44 @@ public class WordCounter {
             int numFilesPerThread = numThreads(files.length, NUMBER_OF_THREADS);
             int fileCount = 1;
             List<File> filesToThread = new ArrayList<>();
-            for(int i = 0; i < files.length; i++)
+
+            for(int i = 0; i < (NUMBER_OF_THREADS - 1) * numFilesPerThread; i++)
             {
                 filesToThread.add(files[i]);
                 if(fileCount == numFilesPerThread)
                 {
                     TreeMap<String, TreeMap<String, Integer>> map2 = new TreeMap<>();
                     MultiReadThread t = new MultiReadThread(filesToThread, map2);
-                    System.out.println("Thread spawned.");
+                    System.out.println("Thread " + t.getId() + " spawned.");
                     runningMultiThreads.add(t);
                     t.start();
-                    try {
-                        t.join();
-                    } catch (InterruptedException e) {
-                        e.printStackTrace();
-                    }
+                   // try {
+                        //t.join();
+                   // } catch (InterruptedException e) {
+                    //    e.printStackTrace();
+                    //}
                     fileCount = 0;
                     filesToThread.clear();
                 }
                 fileCount++;
             }
 
-            if(filesToThread.size() > 0)
+            for(int i = (NUMBER_OF_THREADS - 1) * numFilesPerThread; i < files.length; i++)
             {
-                TreeMap<String, TreeMap<String, Integer>> map2 = new TreeMap<>();
-                MultiReadThread t = new MultiReadThread(filesToThread, map2);
-                System.out.println("Thread spawned.");
-                runningMultiThreads.add(t);
-                t.start();
-                try {
-                    t.join();
-                } catch (InterruptedException e) {
-                    e.printStackTrace();
-                }
-                filesToThread.clear();
+                filesToThread.add(files[i]);
             }
+
+            TreeMap<String, TreeMap<String, Integer>> map2 = new TreeMap<>();
+            MultiReadThread t = new MultiReadThread(filesToThread, map2);
+            System.out.println("Thread " + t.getId() + " spawned.");
+            runningMultiThreads.add(t);
+            t.start();
+           // try {
+           //     t.join();
+          // } catch (InterruptedException e) {
+           //     e.printStackTrace();
+           // }
+            filesToThread.clear();
         }
 
         ArrayList<String> mergedKeyset = new ArrayList<>();
@@ -254,13 +264,21 @@ public class WordCounter {
                 {
                     if(fileMaps.get(keyFile).get(mergedKeyset.get(i)) == null)
                     {
-                        String pad = String.format("%-" + (keyFile.length() - 1) + "s", empty);
+                        String pad;
+                        if((keyFile.length() - 1) != 0)
+                            pad = String.format("%-" + (keyFile.length() - 1) + "s", empty);
+                        else
+                            pad = "";
                         values += "0" + pad + "\t";
                     }
                     else
                     {
                         String val = fileMaps.get(keyFile).get(mergedKeyset.get(i)) + "";
-                        String pad = String.format("%-" + (keyFile.length() - val.length()) + "s", empty);
+                        String pad;
+                        if((keyFile.length() - val.length()) == 0)
+                            pad = "";
+                        else
+                            pad = String.format("%-" + (keyFile.length() - val.length()) + "s", empty);
                         values += val + pad + "\t";
                         lineTotal += fileMaps.get(keyFile).get(mergedKeyset.get(i));
                     }
@@ -288,7 +306,7 @@ public class WordCounter {
     {
         int returnValue = 0;
 
-        if(files / threads >= threads)
+        if(files / threads >= 2)
         {
             returnValue = files / threads;;
         }
