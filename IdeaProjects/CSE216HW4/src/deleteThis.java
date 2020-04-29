@@ -1,12 +1,16 @@
+import java.io.File;
+import java.nio.file.Path;
+import java.nio.file.Paths;
+import java.util.Arrays;
 import java.util.TreeMap;
 
 public class deleteThis
 {
     public static void main(String[] args)
     {
-        int files = 51;
-        int threads = 30;
-        
+        int files = 1000;
+        int threads = 500;
+
         int fileIDK = numThreads(files, threads);
         int loopCount = 1;
         int fCount = 1;
@@ -22,6 +26,14 @@ public class deleteThis
             }
             fCount++;
         }
+       // System.out.println(getExtension("blah.DS"));
+//        File directory = new File("1000_text_files");
+//        File[] files = directory.listFiles();
+//        System.out.println(files.length);// Array of all files within the directory
+//        System.out.println(Arrays.toString(files));
+//        File[] newFiles = filter(files);
+//        System.out.println(Arrays.toString(newFiles));
+//        System.out.println(newFiles.length);
     }
 
     public static int numThreads(int files, int threads)
@@ -45,4 +57,23 @@ public class deleteThis
         }
         return returnValue;
     }
+
+    public static String getExtension(String fileName)
+    {
+        String ans = "";
+        if(fileName.length() > 0 && fileName.lastIndexOf('.') >= 0)
+        {
+            ans = fileName.substring(fileName.lastIndexOf('.'));
+        }
+        return ans;
+    }
+
+    public static File[] filter(File[] files)
+    {
+        return (File[]) Arrays.stream(files)
+                .filter(f -> isTextFile(Paths.get(f.getPath())))
+                .toArray(File[]::new);
+    }
+
+    public static boolean isTextFile(Path p){ return p.toString().endsWith("txt"); }
 }

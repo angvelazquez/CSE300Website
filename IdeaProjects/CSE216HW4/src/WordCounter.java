@@ -10,12 +10,12 @@ public class WordCounter {
 
     // The following are the ONLY variables we will modify for grading.
     // The rest of your code must run with no changes.
-    public static final Path FOLDER_OF_TEXT_FILES  = Paths.get("papi"); // path to the folder where input text files are located
-    public static final Path WORD_COUNT_TABLE_FILE = Paths.get("table"); // path to the output plain-text (.txt) file
-    public static final int  NUMBER_OF_THREADS     = 4;                // max. number of threads to spawn
+    public static final Path FOLDER_OF_TEXT_FILES  = Paths.get("filesPlace"); // path to the folder where input text files are located
+    public static final Path WORD_COUNT_TABLE_FILE = Paths.get("WORD_COUNT_FOLDER"); // path to the output plain-text (.txt) file
+    public static final int  NUMBER_OF_THREADS     = 2;                // max. number of threads to spawn
 
     // NEED TO IMPLEMENT
-    static class ReadThread extends Thread implements Runnable {
+    static class ReadThread extends Thread {
         private File textFile;
         private TreeMap<String, Integer> map;
 
@@ -67,7 +67,7 @@ public class WordCounter {
         }
     }
 
-    static class MultiReadThread extends Thread implements Runnable {
+    static class MultiReadThread extends Thread {
         private List<File> readAllFiles;
         private TreeMap<String, TreeMap<String, Integer>> outPutMap;
 
@@ -129,6 +129,7 @@ public class WordCounter {
         ArrayList<MultiReadThread> runningMultiThreads = new ArrayList<>();
         File directory = new File(String.valueOf(FOLDER_OF_TEXT_FILES));
         File[] files = directory.listFiles(); // Array of all files within the directory
+        //files = filter(files);
         if(files.length <= 0)
             throw new IllegalArgumentException("Cannot run program with " + files.length + " files.");
         if(NUMBER_OF_THREADS >= files.length)
@@ -158,13 +159,8 @@ public class WordCounter {
                     System.out.println("Thread " + t.getId() + " spawned.");
                     runningMultiThreads.add(t);
                     t.start();
-                   // try {
-                        //t.join();
-                   // } catch (InterruptedException e) {
-                    //    e.printStackTrace();
-                    //}
                     fileCount = 0;
-                    filesToThread.clear();
+                    filesToThread = new ArrayList<>();
                 }
                 fileCount++;
             }
@@ -179,19 +175,13 @@ public class WordCounter {
             System.out.println("Thread " + t.getId() + " spawned.");
             runningMultiThreads.add(t);
             t.start();
-           // try {
-           //     t.join();
-          // } catch (InterruptedException e) {
-           //     e.printStackTrace();
-           // }
-            filesToThread.clear();
         }
 
         ArrayList<String> mergedKeyset = new ArrayList<>();
         TreeMap<String, TreeMap<String, Integer>> fileMaps;
         if(NUMBER_OF_THREADS >= files.length)
         {
-            fileMaps = new TreeMap<>(); // HEY LOOK HERE ONLY WORKS FOR THREADS >= FILES
+            fileMaps = new TreeMap<>();
             for(int i = 0; i < runningThreads.size(); i++)
             {
                 try
@@ -227,7 +217,6 @@ public class WordCounter {
             }
         }
 
-
         Set<String> noRepeats = new HashSet<>(mergedKeyset);
         mergedKeyset.clear();
         mergedKeyset.addAll(noRepeats);
@@ -240,7 +229,11 @@ public class WordCounter {
         // Write to file
         try
         {
-            FileWriter writer = new FileWriter(String.valueOf(WORD_COUNT_TABLE_FILE), true);
+            File dir = new File(String.valueOf(WORD_COUNT_TABLE_FILE));
+            dir.mkdir();
+            File file = new File(dir, "table.txt");
+            file.createNewFile();
+            FileWriter writer = new FileWriter(file, true);
             for(int i = 0; i < firstColSpace; i++)
             {
                 writer.write(" ");
@@ -322,5 +315,22 @@ public class WordCounter {
             returnValue = files;
         }
         return returnValue;
+    }
+
+    public static String getExtension(String fileName)
+    {
+        String ans = "";
+        if(fileName.length() > 0 && fileName.lastIndexOf('.') >= 0)
+        {
+            ans = fileName.substring(fileName.lastIndexOf('.'));
+        }
+        return ans;
+    }
+
+    public static File[] filter(File[] files)
+    {
+        return (File[]) Arrays.stream(files)
+                .filter(f -> getExtension(f.getName()).equalsIgnoreCase(".txt"))
+                .toArray(File[]::new);
     }
 }
