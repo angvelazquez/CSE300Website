@@ -10,9 +10,9 @@ public class WordCounter {
 
     // The following are the ONLY variables we will modify for grading.
     // The rest of your code must run with no changes.
-    public static final Path FOLDER_OF_TEXT_FILES  = Paths.get("1000_text_files"); // path to the folder where input text files are located
+    public static final Path FOLDER_OF_TEXT_FILES  = Paths.get("orgTest"); // path to the folder where input text files are located
     public static final Path WORD_COUNT_TABLE_FILE = Paths.get("WORD_COUNT_FOLDER"); // path to the output plain-text (.txt) file
-    public static final int  NUMBER_OF_THREADS     = 8;                // max. number of threads to spawn
+    public static final int  NUMBER_OF_THREADS     = 2;                // max. number of threads to spawn
 
     // NEED TO IMPLEMENT
     static class ReadThread extends Thread {
@@ -189,7 +189,7 @@ public class WordCounter {
                 try
                 {
                     runningThreads.get(i).join();
-                    fileMaps.put(runningThreads.get(i).fileName(), runningThreads.get(i).getMap());
+                    fileMaps.put(runningThreads.get(i).fileName().substring(0, runningThreads.get(i).fileName().indexOf('.')), runningThreads.get(i).getMap());
                     mergedKeyset.addAll(runningThreads.get(i).getMap().keySet());
                 }
                 catch (InterruptedException e)
@@ -208,7 +208,7 @@ public class WordCounter {
                     runningMultiThreads.get(i).join();
                     for(String textNames : runningMultiThreads.get(i).getOutPutMap().keySet())
                     {
-                        fileMaps.put(textNames, runningMultiThreads.get(i).getOutPutMap().get(textNames));
+                        fileMaps.put(textNames.substring(0, textNames.indexOf('.')), runningMultiThreads.get(i).getOutPutMap().get(textNames));
                         mergedKeyset.addAll(runningMultiThreads.get(i).getOutPutMap().get(textNames).keySet());
                     }
                 }
