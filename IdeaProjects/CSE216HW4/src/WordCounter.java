@@ -10,9 +10,9 @@ public class WordCounter {
 
     // The following are the ONLY variables we will modify for grading.
     // The rest of your code must run with no changes.
-    public static final Path FOLDER_OF_TEXT_FILES  = Paths.get("filesPlace"); // path to the folder where input text files are located
+    public static final Path FOLDER_OF_TEXT_FILES  = Paths.get("1000_text_files"); // path to the folder where input text files are located
     public static final Path WORD_COUNT_TABLE_FILE = Paths.get("WORD_COUNT_FOLDER"); // path to the output plain-text (.txt) file
-    public static final int  NUMBER_OF_THREADS     = 2;                // max. number of threads to spawn
+    public static final int  NUMBER_OF_THREADS     = 8;                // max. number of threads to spawn
 
     // NEED TO IMPLEMENT
     static class ReadThread extends Thread {
@@ -128,6 +128,8 @@ public class WordCounter {
         ArrayList<ReadThread> runningThreads = new ArrayList<>();
         ArrayList<MultiReadThread> runningMultiThreads = new ArrayList<>();
         File directory = new File(String.valueOf(FOLDER_OF_TEXT_FILES));
+        if(!directory.exists())
+            throw new IllegalArgumentException("Cannot run program " + directory.getName() + " directory doesn't exist.");
         File[] files = directory.listFiles(); // Array of all files within the directory
         //files = filter(files);
         if(files.length <= 0)

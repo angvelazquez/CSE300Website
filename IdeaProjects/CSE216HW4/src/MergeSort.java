@@ -5,10 +5,12 @@ import java.util.stream.IntStream;
 public class MergeSort {
 
     private static final Random RNG    = new Random(10982755L);
-    private static final int    LENGTH = 1024000;
+    private static final int    LENGTH =  1024000;
 
     public static void main(String... args) {
         int[] arr = randomIntArray();
+        //int[] arr = {2,5,7,3,24,6,8};
+        //System.out.println(Arrays.toString(arr));
         long start = System.currentTimeMillis();
         concurrentMergeSort(arr);
         long end = System.currentTimeMillis();
@@ -17,6 +19,7 @@ public class MergeSort {
             System.exit(0);
         }
         System.out.printf("%10d numbers: %6d ms%n", LENGTH, end - start);
+        //System.out.println(Arrays.toString(arr));
 
     }
 
@@ -28,9 +31,9 @@ public class MergeSort {
     }
 
     public static boolean sorted(int[] arr) {
-        for(int i = 1; i < arr.length; i++)
+        for(int i = 0; i < arr.length - 1; i++)
         {
-            if(arr[i - 1] > arr[i])
+            if(arr[i] > arr[i + 1])
                 return false;
         }
         return true;
@@ -38,8 +41,9 @@ public class MergeSort {
 
     public static void concurrentMergeSort(int[] array)
     {
-        //int threadCount = Runtime.getRuntime().availableProcessors();
-        concurrentMergeSort(array, 11);
+        //Runtime.getRuntime().availableProcessors();
+        int threadCount = 4;
+        concurrentMergeSort(array, 1);
     }
 
     public static void concurrentMergeSort(int[] array, int threadCount)
@@ -53,10 +57,12 @@ public class MergeSort {
             if(array.length >= 2)
             {
                 int middle = array.length / 2;
-                int[] left = new int[array.length / 2];
+                int[] left = new int[middle];
                 System.arraycopy(array, 0, left, 0, middle);
-                int[] right = new int[array.length / 2];
-                System.arraycopy(array, middle, right, 0, middle);
+                if(array.length % 2 != 0)
+                    middle++;
+                int[] right = new int[middle];
+                System.arraycopy(array, array.length / 2, right, 0, middle);
 
                 Thread leftSort = new Thread(new Sorting(left, threadCount / 2));
                 Thread rightSort = new Thread(new Sorting(right, threadCount / 2));
